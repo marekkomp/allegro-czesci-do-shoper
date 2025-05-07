@@ -22,24 +22,14 @@ target_mapping = {
     "ID oferty": "ID oferty",
     "Podkategoria": "Podkategoria",
     "Liczba sztuk": "Liczba sztuk",
-    "Zdjęcia": "Zdjęcia",
     "Opis oferty": "Opis oferty",
     "Marka": "Marka",
     "Kod producenta": "Kod producenta",
 }
 
-# Desired output column order
-output_cols = [
-    "Nazwa produktu", "Kondycja|730|text", "Model|731|text",
-    "Rodzaj|732|text", "Przeznaczenie|733|text", "Napięcie|734|text", "Pojemność|735|text",
-    "Gwarancja|736|text", "Typ|737|text", "Moc|738|text", "Informacje dodatkowe|739|text",
-    "W zestawie|740|text", "ID oferty", "Podkategoria", "Liczba sztuk",
-    "Zdjęcia", "Opis oferty", "Marka", "Kod producenta"
-]
-
 st.title("CSV Column Mapper & Exporter")
-
 uploaded = st.file_uploader("Wgraj plik CSV", type=["csv"])
+
 if uploaded:
     # Skip first 3 rows, use 4th as header
     df = pd.read_csv(uploaded, header=3, sep=',')
@@ -54,29 +44,36 @@ if uploaded:
                    .str.strip()
         )
 
-    # Normalize 'Zdjęcia' column: join any commas into '|'
+    # Normalize and split 'Zdjęcia' column into separate URL columns
+    img_urls = pd.DataFrame()
     if 'Zdjęcia' in df.columns:
-        df['Zdjęcia'] = (
-            df['Zdjęcia'].astype(str)
-                       .str.replace(r',\s*', '|', regex=True)
-                       .str.strip()
-        )
+        # Replace commas with '|', split into multiple columns
+        clean = df['Zdjęcia'].astype(str).str.replace(r',\s*', '|', regex=True)
+        img_urls = clean.str.split('|', expand=True)
+        img_urls = img_urls.rename(columns=lambda x: f"Zdjęcie_{x+1}")
 
-    # Build result DataFrame
+    # Build result DataFrame with mapped columns
     result = pd.DataFrame()
     for orig, target in target_mapping.items():
         result[target] = df.get(orig, "")
 
-    # Reorder to match desired output_cols
-    result = result.reindex(columns=output_cols)
+    # Append image URL columns
+    if not img_urls.empty:
+        # Ensure same index alignment
+        img_urls.index = result.index
+        result = pd.concat([result, img_urls], axis=1)
 
+    # Reorder: base mapped columns, then image columns
+    base_cols = list(target_mapping.values())
+    img_cols = list(img_urls.columns)
+    result = result[ base_cols + img_cols ]
+
+    # Show and export
     st.dataframe(result)
-
-    # Export to Excel
+    
     buffer = io.BytesIO()
     result.to_excel(buffer, index=False, engine='openpyxl')
     buffer.seek(0)
-
     st.download_button(
         label="Pobierz wynikowy Excel",
         data=buffer,
@@ -85,6 +82,6 @@ if uploaded:
     )
 
 # To run:
-# 1. git init; git add main.py; git commit -m "Update mapping: remove Kod produktu, Reguła Cenowa; clean warranty; unify images"
+# 1. git add main.py; git commit -m "Split images into separate columns"
 # 2. pip install streamlit pandas openpyxl
 # 3. streamlit run main.py
