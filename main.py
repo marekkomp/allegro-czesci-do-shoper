@@ -28,60 +28,63 @@ target_mapping = {
 }
 
 st.title("CSV Column Mapper & Exporter")
+
 uploaded = st.file_uploader("Wgraj plik CSV", type=["csv"])
+if not uploaded:
+    st.info("Proszę wgrać plik CSV (pierwsze 3 wiersze pomijane, 4. wiersz jako nagłówek)")
+    st.stop()
 
-if uploaded:
-    # Skip first 3 rows, use 4th as header
-    df = pd.read_csv(uploaded, header=3, sep=',')
+# Wczytanie CSV (pomijamy pierwsze 3 wiersze)
+df = pd.read_csv(uploaded, header=3, sep=',')
 
-    # Clean warranty column: keep only "6 miesięcy", "12 miesięcy" etc.
-    wcol = 'Informacje o gwarancjach (opcjonalne)'
-    if wcol in df.columns:
-        df[wcol] = (
-            df[wcol].astype(str)
-                   .str.replace(r'^Gwarancja\s*', '', regex=True)
-                   .str.replace(r'\s*\(.*\)', '', regex=True)
-                   .str.strip()
-        )
-
-    # Normalize and split 'Zdjęcia' column into separate URL columns
-    img_urls = pd.DataFrame()
-    if 'Zdjęcia' in df.columns:
-        # Replace commas with '|', split into multiple columns
-        clean = df['Zdjęcia'].astype(str).str.replace(r',\s*', '|', regex=True)
-        img_urls = clean.str.split('|', expand=True)
-        img_urls = img_urls.rename(columns=lambda x: f"Zdjęcie_{x+1}")
-
-    # Build result DataFrame with mapped columns
-    result = pd.DataFrame()
-    for orig, target in target_mapping.items():
-        result[target] = df.get(orig, "")
-
-    # Append image URL columns
-    if not img_urls.empty:
-        # Ensure same index alignment
-        img_urls.index = result.index
-        result = pd.concat([result, img_urls], axis=1)
-
-    # Reorder: base mapped columns, then image columns
-    base_cols = list(target_mapping.values())
-    img_cols = list(img_urls.columns)
-    result = result[ base_cols + img_cols ]
-
-    # Show and export
-    st.dataframe(result)
-    
-    buffer = io.BytesIO()
-    result.to_excel(buffer, index=False, engine='openpyxl')
-    buffer.seek(0)
-    st.download_button(
-        label="Pobierz wynikowy Excel",
-        data=buffer,
-        file_name="mapped_output.xlsx",
-        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+# 1) Oczyść kolumnę gwarancji: zostaw tylko np. "6 miesięcy"
+wcol = 'Informacje o gwarancjach (opcjonalne)'
+if wcol in df.columns:
+    df[wcol] = (
+        df[wcol].astype(str)
+               .str.replace(r'^Gwarancja\s*', '', regex=True)
+               .str.replace(r'\s*\(.*\)', '', regex=True)
+               .str.strip()
     )
 
-# To run:
-# 1. git add main.py; git commit -m "Split images into separate columns"
+# 2) Rozdziel 'Zdjęcia' na oddzielne kolumny URL-ów
+img_urls = pd.DataFrame(index=df.index)
+if 'Zdjęcia' in df.columns:
+    # Zamień separację przecinkiem na '|', rozdziel
+    clean = df['Zdjęcia'].astype(str).str.replace(r',\s*', '|', regex=True)
+    split_imgs = clean.str.split('|', expand=True)
+    # Nazwij kolumny Zdjęcie_1, Zdjęcie_2, ...
+    split_imgs.columns = [f"Zdjęcie_{i+1}" for i in range(split_imgs.shape[1])]
+    img_urls = split_imgs
+
+# 3) Zbuduj wynikowy DataFrame z mapowaniem
+result = pd.DataFrame()
+for orig_col, target_col in target_mapping.items():
+    result[target_col] = df.get(orig_col, "")
+
+# 4) Dodaj kolumny z obrazkami (jeśli są)
+if not img_urls.empty:
+    result = pd.concat([result, img_urls], axis=1)
+
+# 5) Wypełnij puste wartości i konwertuj całość na string (usuwa problemy z Arrow)
+result = result.fillna("").astype(str)
+
+# 6) Wyświetl wynik (tylko pierwsze 100 wierszy, żeby uniknąć błędów dużych DataFrame)
+st.dataframe(result.head(100))
+
+# 7) Przygotuj plik do pobrania
+buffer = io.BytesIO()
+result.to_excel(buffer, index=False, engine='openpyxl')
+buffer.seek(0)
+
+st.download_button(
+    label="Pobierz pełny plik Excel",
+    data=buffer,
+    file_name="mapped_output.xlsx",
+    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+)
+
+# Uruchomienie:
+# 1. git add main.py; git commit -m "Fix: split images into columns, clamp display, cast to str"
 # 2. pip install streamlit pandas openpyxl
 # 3. streamlit run main.py
