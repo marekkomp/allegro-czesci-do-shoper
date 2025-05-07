@@ -1,6 +1,8 @@
 import streamlit as st
 import pandas as pd
 import io
+import json
+import re
 
 # Mapping from original CSV columns to desired output columns (without Kod produktu and Reguła Cenowa)
 target_mapping = {
@@ -47,32 +49,56 @@ if wcol in df.columns:
                .str.strip()
     )
 
-# 2) Rozdziel 'Zdjęcia' na oddzielne kolumny URL-ów
+# 2) Przetwórz kolumnę "Opis oferty": zamiana JSON na prosty HTML (h2, p)
+def clean_description(json_str):
+    try:
+        data = json.loads(json_str)
+    except (json.JSONDecodeError, TypeError):
+        return ""
+    html_out = []
+    for section in data.get('sections', []):
+        for item in section.get('items', []):
+            if item.get('type') == 'TEXT':
+                content = item.get('content', '')
+                # Zastąp wszystkie nagłówki na <h2>
+                content = re.sub(r'<h[1-6]>(.*?)</h[1-6]>', r'<h2>\1</h2>', content, flags=re.DOTALL)
+                # Usuń znaczniki <ul>
+                content = re.sub(r'</?ul>', '', content)
+                # Zamień <li> na paragraf z punktorami
+                content = re.sub(r'<li>(.*?)</li>', r'<p>• \1</p>', content, flags=re.DOTALL)
+                # Pozostaw tylko <h2> i <p>
+                # Usuń inne tagi
+                content = re.sub(r'<(?!/?(?:h2|p)\b)[^>]+>', '', content)
+                html_out.append(content.strip())
+    return '\n'.join(html_out)
+
+if 'Opis oferty' in df.columns:
+    df['Opis oferty'] = df['Opis oferty'].apply(clean_description)
+
+# 3) Rozdziel 'Zdjęcia' na oddzielne kolumny URL-ów
 img_urls = pd.DataFrame(index=df.index)
 if 'Zdjęcia' in df.columns:
-    # Zamień separację przecinkiem na '|', rozdziel
     clean = df['Zdjęcia'].astype(str).str.replace(r',\s*', '|', regex=True)
     split_imgs = clean.str.split('|', expand=True)
-    # Nazwij kolumny Zdjęcie_1, Zdjęcie_2, ...
     split_imgs.columns = [f"Zdjęcie_{i+1}" for i in range(split_imgs.shape[1])]
     img_urls = split_imgs
 
-# 3) Zbuduj wynikowy DataFrame z mapowaniem
+# 4) Zbuduj wynikowy DataFrame z mapowaniem
 result = pd.DataFrame()
 for orig_col, target_col in target_mapping.items():
     result[target_col] = df.get(orig_col, "")
 
-# 4) Dodaj kolumny z obrazkami (jeśli są)
+# 5) Dodaj kolumny z obrazkami (jeśli są)
 if not img_urls.empty:
     result = pd.concat([result, img_urls], axis=1)
 
-# 5) Wypełnij puste wartości i konwertuj całość na string (usuwa problemy z Arrow)
+# 6) Wypełnij puste wartości i konwertuj całość na string (usuwa problemy z Arrow)
 result = result.fillna("").astype(str)
 
-# 6) Wyświetl wynik (tylko pierwsze 100 wierszy, żeby uniknąć błędów dużych DataFrame)
+# 7) Wyświetl wynik (tylko pierwsze 100 wierszy)
 st.dataframe(result.head(100))
 
-# 7) Przygotuj plik do pobrania
+# 8) Przygotuj plik do pobrania
 buffer = io.BytesIO()
 result.to_excel(buffer, index=False, engine='openpyxl')
 buffer.seek(0)
@@ -85,6 +111,6 @@ st.download_button(
 )
 
 # Uruchomienie:
-# 1. git add main.py; git commit -m "Fix: split images into columns, clamp display, cast to str"
+# 1. git add main.py; git commit -m "Add HTML cleaning for 'Opis oferty'"
 # 2. pip install streamlit pandas openpyxl
 # 3. streamlit run main.py
