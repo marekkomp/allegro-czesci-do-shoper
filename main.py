@@ -31,6 +31,15 @@ target_mapping = {
 
 st.title("CSV Column Mapper & Exporter")
 
+# Wyświetlenie mapowania kolumn w interfejsie
+st.subheader("Połączenia kolumn (źródło → docelowa)")
+# Przygotowanie tabeli mapowań
+df_mapping = pd.DataFrame(
+    list(target_mapping.items()),
+    columns=["Kolumna źródłowa", "Kolumna docelowa"]
+)
+st.table(df_mapping)
+
 uploaded = st.file_uploader("Wgraj plik CSV", type=["csv"])
 if not uploaded:
     st.info("Proszę wgrać plik CSV (pierwsze 3 wiersze pomijane, 4. wiersz jako nagłówek)")
@@ -42,6 +51,10 @@ df = pd.read_csv(uploaded, header=3, sep=',')
 # **Nowość: podgląd pierwotnych danych**
 st.subheader("Podgląd pierwotnych danych (pominięte nagłówki)")
 st.dataframe(df.head(100))  # pokaż pierwsze 100 wierszy surowych danych
+
+# 0a) Oczyść kolumnę ID oferty: usuń wiodące apostrofy
+if 'ID oferty' in df.columns:
+    df['ID oferty'] = df['ID oferty'].astype(str).str.lstrip("'")
 
 # 1) Oczyść kolumnę gwarancji: zostaw tylko np. "6 miesięcy"
 wcol = 'Informacje o gwarancjach (opcjonalne)'
@@ -116,6 +129,6 @@ st.download_button(
 )
 
 # Uruchomienie:
-# 1. git add main.py; git commit -m "Add HTML cleaning for 'Opis oferty' and raw data preview"
+# 1. git add main.py; git commit -m "Clean leading apostrophes in ID oferty"
 # 2. pip install streamlit pandas openpyxl
 # 3. streamlit run main.py
