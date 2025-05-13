@@ -7,6 +7,7 @@ import re
 # Mapping from original CSV columns to desired output columns
 target_mapping = {
     "Tytuł oferty": "Nazwa produktu",
+    "Cena PL": "price",
     "Stan": "Kondycja|730|text",
     "Model": "Model|731|text",
     "Rodzaj": "Rodzaj|732|text",
