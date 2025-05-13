@@ -26,6 +26,7 @@ target_mapping = {
     "Liczba sztuk": "Liczba sztuk",
     "Opis oferty": "Opis oferty",
     "Marka": "Marka",
+    "Producent": "Producent",
     "Kod producenta": "Kod producenta",
 }
 
