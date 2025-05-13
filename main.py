@@ -41,7 +41,7 @@ if not uploaded:
 df = pd.read_csv(uploaded, header=3, sep=',')
 
 # 2) Podgląd surowych danych
-st.subheader("Podgląd pierwotnych danych (pominięte nagłówki)")
+st.subheader("Podgląd pierwotnych danych (pierwsze 100 wierszy)")
 st.dataframe(df.head(100))
 
 # 3) Oczyść kolumnę gwarancji: zostaw tylko np. "6 miesięcy"
@@ -54,27 +54,37 @@ if wcol in df.columns:
                .str.strip()
     )
 
-# 4) Przetwarzanie "Opis oferty": JSON → HTML bez \n, z <br/>
+# 4) Przetwarzanie "Opis oferty": JSON → HTML, usuń br i puste paragrafy
 def clean_description(json_str):
     try:
         data = json.loads(json_str)
     except (json.JSONDecodeError, TypeError):
         return ""
-    html_out = []
+    html_parts = []
     for section in data.get('sections', []):
         for item in section.get('items', []):
             if item.get('type') == 'TEXT':
                 content = item.get('content', '')
-                # Ujednolicenie nagłówków na h2
-                content = re.sub(r'<h[1-6]>(.*?)</h[1-6]>', r'<h2>\1</h2>', content, flags=re.DOTALL)
-                # Usuń listy <ul> i zamień <li> na paragrafy z bulletami
+                # Zamiana nagłówków H1-H6 na H2
+                content = re.sub(r'<h[1-6]>(.*?)</h[1-6]>',
+                                 r'<h2>\1</h2>',
+                                 content,
+                                 flags=re.DOTALL)
+                # Usuń <ul> i </ul>, zamień <li> na <p>• …</p>
                 content = re.sub(r'</?ul>', '', content)
-                content = re.sub(r'<li>(.*?)</li>', r'<p>• \1</p>', content, flags=re.DOTALL)
-                # Usuń wszystkie inne tagi poza <h2> i <p>
-                content = re.sub(r'<(?!/?(?:h2|p)\b)[^>]+>', '', content)
-                html_out.append(content.strip())
-    # Zwróć HTML jako jeden ciąg, bez spacji między blokami
-    return ''.join(block + '<br/>' for block in html_out)
+                content = re.sub(r'<li>(.*?)</li>',
+                                 r'<p>• \1</p>',
+                                 content,
+                                 flags=re.DOTALL)
+                # Usuń wszystkie tagi inne niż <h2> i <p>
+                content = re.sub(r'<(?!\/?(?:h2|p)\b)[^>]+>', '', content)
+                # Dodaj do listy
+                html_parts.append(content.strip())
+    # Połącz fragmenty bez <br>
+    html = ''.join(html_parts)
+    # Usuń puste paragrafy (<p> </p>, <p> </p>)
+    html = re.sub(r'<p>\s*(?:&nbsp;| )?\s*</p>', '', html)
+    return html
 
 if 'Opis oferty' in df.columns:
     df['Opis oferty'] = df['Opis oferty'].apply(clean_description)
@@ -97,13 +107,14 @@ if not img_urls.empty:
     result = pd.concat([result, img_urls], axis=1)
 
 # 8) Konwersja ID oferty na typ liczbowy (żeby Excel nie dodawał apostrofu)
-result['ID oferty'] = pd.to_numeric(result['ID oferty'], errors='coerce')
+if 'ID oferty' in result.columns:
+    result['ID oferty'] = pd.to_numeric(result['ID oferty'], errors='coerce')
 
 # 9) Wypełnij brakujące i skonwertuj wszystkie pozostałe kolumny na tekst
-str_cols = result.columns.difference(['ID oferty'])
-result[str_cols] = result[str_cols].fillna("").astype(str)
+text_cols = result.columns.difference(['ID oferty'])
+result[text_cols] = result[text_cols].fillna("").astype(str)
 
-# 10) Wyświetl wynik
+# 10) Podgląd wyników
 st.subheader("Wynik mapowania (pierwsze 100 wierszy)")
 st.dataframe(result.head(100))
 
@@ -116,5 +127,5 @@ st.download_button(
     label="Pobierz pełny plik Excel",
     data=buffer,
     file_name="mapped_output.xlsx",
-    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    mime="application/vnd.openxmlformats-officedocument-spreadsheetml.sheet"
 )
