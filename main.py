@@ -55,7 +55,8 @@ if wcol in df.columns:
     )
 
 # 4) Przetwarzanie "Opis oferty": JSON → HTML, usuń br i puste paragrafy
-import json, re
+import json
+import re
 
 def clean_description(json_str):
     try:
@@ -67,28 +68,32 @@ def clean_description(json_str):
         for item in section.get('items', []):
             if item.get('type') == 'TEXT':
                 content = item.get('content', '')
-                # Zamiana nagłówków H1–H6 na H2
+                # 1) Zamiana H1–H6 na H2
                 content = re.sub(r'<h[1-6]>(.*?)</h[1-6]>',
                                  r'<h2>\1</h2>',
                                  content,
                                  flags=re.DOTALL)
-                # Usuń <ul> i </ul>, zamień <li> na <p>• …</p>
+                # 2) <ul> → usuń, <li> → <p>• …</p>
                 content = re.sub(r'</?ul>', '', content)
                 content = re.sub(r'<li>(.*?)</li>',
                                  r'<p>• \1</p>',
                                  content,
                                  flags=re.DOTALL)
-                # Usuń wszystkie tagi inne niż <h2> i <p>
+                # 3) usuń wszystkie tagi inne niż <h2> i <p>
                 content = re.sub(r'<(?!\/?(?:h2|p)\b)[^>]+>', '', content)
                 html_parts.append(content.strip())
-    # Połącz fragmenty w jeden ciąg
+    # 4) połącz w jeden ciąg
     html = ''.join(html_parts)
-    # Usuń puste paragrafy
+    # 5) usuń puste paragrafy
     html = re.sub(r'<p>\s*(?:&nbsp;| )?\s*</p>', '', html)
-    # === TU EDYCJA: usuń wszystkie znaki nowej linii i spacje ===
-    html = html.replace('\n', '').replace('\r', '')
-    html = html.replace(' ', '')
+    # 6) usuń entery i powroty karetki (zamień na spację, żeby nie skleić wyrazów)
+    html = html.replace('\n', ' ').replace('\r', ' ')
+    # 7) tylko teraz usuwamy spacje między tagami, np. '</p>   <h2>' → '</p><h2>'
+    html = re.sub(r'>\s+<', '><', html)
+    # (opcjonalnie) jeśli chcesz skompresować wielokrotne spacje w treści:
+    #    html = re.sub(r' {2,}', ' ', html).strip()
     return html
+
 
 
 
