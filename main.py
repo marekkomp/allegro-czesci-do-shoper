@@ -39,6 +39,10 @@ if not uploaded:
 # Wczytanie CSV (pomijamy pierwsze 3 wiersze)
 df = pd.read_csv(uploaded, header=3, sep=',')
 
+# **Nowość: podgląd pierwotnych danych**
+st.subheader("Podgląd pierwotnych danych (pominięte nagłówki)")
+st.dataframe(df.head(100))  # pokaż pierwsze 100 wierszy surowych danych
+
 # 1) Oczyść kolumnę gwarancji: zostaw tylko np. "6 miesięcy"
 wcol = 'Informacje o gwarancjach (opcjonalne)'
 if wcol in df.columns:
@@ -96,6 +100,7 @@ if not img_urls.empty:
 result = result.fillna("").astype(str)
 
 # 7) Wyświetl wynik (tylko pierwsze 100 wierszy)
+st.subheader("Wynik mapowania (pierwsze 100 wierszy)")
 st.dataframe(result.head(100))
 
 # 8) Przygotuj plik do pobrania
@@ -111,6 +116,6 @@ st.download_button(
 )
 
 # Uruchomienie:
-# 1. git add main.py; git commit -m "Add HTML cleaning for 'Opis oferty'"
+# 1. git add main.py; git commit -m "Add HTML cleaning for 'Opis oferty' and raw data preview"
 # 2. pip install streamlit pandas openpyxl
 # 3. streamlit run main.py
