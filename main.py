@@ -31,15 +31,6 @@ target_mapping = {
 
 st.title("CSV Column Mapper & Exporter")
 
-# Wyświetlenie mapowania kolumn w interfejsie
-st.subheader("Połączenia kolumn (źródło → docelowa)")
-# Przygotowanie tabeli mapowań
-df_mapping = pd.DataFrame(
-    list(target_mapping.items()),
-    columns=["Kolumna źródłowa", "Kolumna docelowa"]
-)
-st.table(df_mapping)
-
 uploaded = st.file_uploader("Wgraj plik CSV", type=["csv"])
 if not uploaded:
     st.info("Proszę wgrać plik CSV (pierwsze 3 wiersze pomijane, 4. wiersz jako nagłówek)")
@@ -125,6 +116,6 @@ st.download_button(
 )
 
 # Uruchomienie:
-# 1. git add main.py; git commit -m "Add mapping preview and HTML cleaning for 'Opis oferty'"
+# 1. git add main.py; git commit -m "Add HTML cleaning for 'Opis oferty' and raw data preview"
 # 2. pip install streamlit pandas openpyxl
 # 3. streamlit run main.py
