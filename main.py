@@ -5,6 +5,7 @@ import json
 import re
 
 # Mapping from original CSV columns to desired output columns
+# Format: CSV column -> output column name (or with | for Shoper format)
 target_mapping = {
     "Tytuł oferty": "Nazwa produktu",
     "Cena PL": "price",
@@ -54,7 +55,7 @@ if wcol in df.columns:
                .str.strip()
     )
 
-# 4) Przetwarzanie "Opis oferty": JSON → prosty HTML
+# 4) Przetwarzanie "Opis oferty": JSON → HTML bez \n, z <br/>
 def clean_description(json_str):
     try:
         data = json.loads(json_str)
@@ -65,12 +66,16 @@ def clean_description(json_str):
         for item in section.get('items', []):
             if item.get('type') == 'TEXT':
                 content = item.get('content', '')
+                # Ujednolicenie nagłówków na h2
                 content = re.sub(r'<h[1-6]>(.*?)</h[1-6]>', r'<h2>\1</h2>', content, flags=re.DOTALL)
+                # Usuń listy <ul> i zamień <li> na paragrafy z bulletami
                 content = re.sub(r'</?ul>', '', content)
                 content = re.sub(r'<li>(.*?)</li>', r'<p>• \1</p>', content, flags=re.DOTALL)
+                # Usuń wszystkie inne tagi poza <h2> i <p>
                 content = re.sub(r'<(?!/?(?:h2|p)\b)[^>]+>', '', content)
                 html_out.append(content.strip())
-    return '\n'.join(html_out)
+    # Zwróć ciąg z <br/> zamiast dosłownych \n
+    return ''.join(f"{block}<br/>" for block in html_out)
 
 if 'Opis oferty' in df.columns:
     df['Opis oferty'] = df['Opis oferty'].apply(clean_description)
