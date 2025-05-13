@@ -52,10 +52,6 @@ df = pd.read_csv(uploaded, header=3, sep=',')
 st.subheader("Podgląd pierwotnych danych (pominięte nagłówki)")
 st.dataframe(df.head(100))  # pokaż pierwsze 100 wierszy surowych danych
 
-# 0a) Oczyść kolumnę ID oferty: usuń wiodące apostrofy
-if 'ID oferty' in df.columns:
-    df['ID oferty'] = df['ID oferty'].astype(str).str.lstrip("'")
-
 # 1) Oczyść kolumnę gwarancji: zostaw tylko np. "6 miesięcy"
 wcol = 'Informacje o gwarancjach (opcjonalne)'
 if wcol in df.columns:
@@ -129,6 +125,6 @@ st.download_button(
 )
 
 # Uruchomienie:
-# 1. git add main.py; git commit -m "Clean leading apostrophes in ID oferty"
+# 1. git add main.py; git commit -m "Add mapping preview and HTML cleaning for 'Opis oferty'"
 # 2. pip install streamlit pandas openpyxl
 # 3. streamlit run main.py
