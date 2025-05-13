@@ -81,14 +81,15 @@ def clean_description(json_str):
                 # Usuń wszystkie tagi inne niż <h2> i <p>
                 content = re.sub(r'<(?!\/?(?:h2|p)\b)[^>]+>', '', content)
                 html_parts.append(content.strip())
-    # Połącz fragmenty
+    # Połącz fragmenty w jeden ciąg
     html = ''.join(html_parts)
     # Usuń puste paragrafy
     html = re.sub(r'<p>\s*(?:&nbsp;| )?\s*</p>', '', html)
-    # === DODATKOWO: usuń wszystkie znaki nowej linii i zbicie spacji ===
-    html = html.replace('\n', ' ').replace('\r', ' ')
-    html = re.sub(r'\s{2,}', ' ', html).strip()
+    # === TU EDYCJA: usuń wszystkie znaki nowej linii i spacje ===
+    html = html.replace('\n', '').replace('\r', '')
+    html = html.replace(' ', '')
     return html
+
 
 
 if 'Opis oferty' in df.columns:
