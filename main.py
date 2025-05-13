@@ -4,7 +4,7 @@ import io
 import json
 import re
 
-# Mapping from original CSV columns to desired output columns (without Kod produktu and Reguła Cenowa)
+# Mapping from original CSV columns to desired output columns
 target_mapping = {
     "Tytuł oferty": "Nazwa produktu",
     "Stan": "Kondycja|730|text",
@@ -12,7 +12,6 @@ target_mapping = {
     "Rodzaj": "Rodzaj|732|text",
     "Przeznaczenie": "Przeznaczenie|733|text",
     "Napięcie [V]": "Napięcie|734|text",
-    # Pojemność: choose disk GB or battery mAh
     "Pojemność dysku [GB]": "Pojemność|735|text",
     "Pojemność (mAh) [mAh]": "Pojemność|735|text",
     "Informacje o gwarancjach (opcjonalne)": "Gwarancja|736|text",
@@ -20,7 +19,7 @@ target_mapping = {
     "Moc [W]": "Moc|738|text",
     "Informacje dodatkowe": "Informacje dodatkowe|739|text",
     "Załączone wyposażenie": "W zestawie|740|text",
-    # Additional fields
+    # Pola dodatkowe bez zmiany nazwy
     "ID oferty": "ID oferty",
     "Podkategoria": "Podkategoria",
     "Liczba sztuk": "Liczba sztuk",
@@ -36,14 +35,14 @@ if not uploaded:
     st.info("Proszę wgrać plik CSV (pierwsze 3 wiersze pomijane, 4. wiersz jako nagłówek)")
     st.stop()
 
-# Wczytanie CSV (pomijamy pierwsze 3 wiersze)
+# 1) Wczytanie CSV (pomijamy pierwsze 3 wiersze)
 df = pd.read_csv(uploaded, header=3, sep=',')
 
-# **Nowość: podgląd pierwotnych danych**
+# 2) Podgląd surowych danych
 st.subheader("Podgląd pierwotnych danych (pominięte nagłówki)")
-st.dataframe(df.head(100))  # pokaż pierwsze 100 wierszy surowych danych
+st.dataframe(df.head(100))
 
-# 1) Oczyść kolumnę gwarancji: zostaw tylko np. "6 miesięcy"
+# 3) Oczyść kolumnę gwarancji: zostaw tylko np. "6 miesięcy"
 wcol = 'Informacje o gwarancjach (opcjonalne)'
 if wcol in df.columns:
     df[wcol] = (
@@ -53,7 +52,7 @@ if wcol in df.columns:
                .str.strip()
     )
 
-# 2) Przetwórz kolumnę "Opis oferty": zamiana JSON na prosty HTML (h2, p)
+# 4) Przetwarzanie "Opis oferty": JSON → prosty HTML
 def clean_description(json_str):
     try:
         data = json.loads(json_str)
@@ -64,14 +63,9 @@ def clean_description(json_str):
         for item in section.get('items', []):
             if item.get('type') == 'TEXT':
                 content = item.get('content', '')
-                # Zastąp wszystkie nagłówki na <h2>
                 content = re.sub(r'<h[1-6]>(.*?)</h[1-6]>', r'<h2>\1</h2>', content, flags=re.DOTALL)
-                # Usuń znaczniki <ul>
                 content = re.sub(r'</?ul>', '', content)
-                # Zamień <li> na paragraf z punktorami
                 content = re.sub(r'<li>(.*?)</li>', r'<p>• \1</p>', content, flags=re.DOTALL)
-                # Pozostaw tylko <h2> i <p>
-                # Usuń inne tagi
                 content = re.sub(r'<(?!/?(?:h2|p)\b)[^>]+>', '', content)
                 html_out.append(content.strip())
     return '\n'.join(html_out)
@@ -79,7 +73,7 @@ def clean_description(json_str):
 if 'Opis oferty' in df.columns:
     df['Opis oferty'] = df['Opis oferty'].apply(clean_description)
 
-# 3) Rozdziel 'Zdjęcia' na oddzielne kolumny URL-ów
+# 5) Rozdziel 'Zdjęcia' na osobne kolumny URL
 img_urls = pd.DataFrame(index=df.index)
 if 'Zdjęcia' in df.columns:
     clean = df['Zdjęcia'].astype(str).str.replace(r',\s*', '|', regex=True)
@@ -87,23 +81,27 @@ if 'Zdjęcia' in df.columns:
     split_imgs.columns = [f"Zdjęcie_{i+1}" for i in range(split_imgs.shape[1])]
     img_urls = split_imgs
 
-# 4) Zbuduj wynikowy DataFrame z mapowaniem
+# 6) Zbuduj wynikowy DataFrame z mapowaniem
 result = pd.DataFrame()
 for orig_col, target_col in target_mapping.items():
     result[target_col] = df.get(orig_col, "")
 
-# 5) Dodaj kolumny z obrazkami (jeśli są)
+# 7) Dodaj kolumny z obrazkami (jeśli są)
 if not img_urls.empty:
     result = pd.concat([result, img_urls], axis=1)
 
-# 6) Wypełnij puste wartości i konwertuj całość na string (usuwa problemy z Arrow)
-result = result.fillna("").astype(str)
+# 8) Konwersja ID oferty na typ liczbowy (żeby Excel nie dodawał apostrofu)
+result['ID oferty'] = pd.to_numeric(result['ID oferty'], errors='coerce')
 
-# 7) Wyświetl wynik (tylko pierwsze 100 wierszy)
+# 9) Wypełnij brakujące i skonwertuj wszystkie pozostałe kolumny na tekst
+str_cols = result.columns.difference(['ID oferty'])
+result[str_cols] = result[str_cols].fillna("").astype(str)
+
+# 10) Wyświetl wynik
 st.subheader("Wynik mapowania (pierwsze 100 wierszy)")
 st.dataframe(result.head(100))
 
-# 8) Przygotuj plik do pobrania
+# 11) Przygotuj plik do pobrania
 buffer = io.BytesIO()
 result.to_excel(buffer, index=False, engine='openpyxl')
 buffer.seek(0)
@@ -114,8 +112,3 @@ st.download_button(
     file_name="mapped_output.xlsx",
     mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
 )
-
-# Uruchomienie:
-# 1. git add main.py; git commit -m "Add HTML cleaning for 'Opis oferty' and raw data preview"
-# 2. pip install streamlit pandas openpyxl
-# 3. streamlit run main.py
