@@ -73,7 +73,7 @@ def clean_description(json_str):
                 # Usuń wszystkie inne tagi poza <h2> i <p>
                 content = re.sub(r'<(?!/?(?:h2|p)\b)[^>]+>', '', content)
                 html_out.append(content.strip())
-    # Zwróć HTML jako jeden ciąg bez spacji między blokami
+    # Zwróć HTML jako jeden ciąg, bez spacji między blokami
     return ''.join(block + '<br/>' for block in html_out)
 
 if 'Opis oferty' in df.columns:
@@ -96,8 +96,8 @@ for orig_col, target_col in target_mapping.items():
 if not img_urls.empty:
     result = pd.concat([result, img_urls], axis=1)
 
-# 8) Konwersja ID oferty na typ liczbowy
-esult['ID oferty'] = pd.to_numeric(result['ID oferty'], errors='coerce')
+# 8) Konwersja ID oferty na typ liczbowy (żeby Excel nie dodawał apostrofu)
+result['ID oferty'] = pd.to_numeric(result['ID oferty'], errors='coerce')
 
 # 9) Wypełnij brakujące i skonwertuj wszystkie pozostałe kolumny na tekst
 str_cols = result.columns.difference(['ID oferty'])
