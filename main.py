@@ -5,7 +5,6 @@ import json
 import re
 
 # Mapping from original CSV columns to desired output columns
-# Format: CSV column -> output column name (or with | for Shoper format)
 target_mapping = {
     "Tytuł oferty": "Nazwa produktu",
     "Cena PL": "price",
@@ -74,8 +73,8 @@ def clean_description(json_str):
                 # Usuń wszystkie inne tagi poza <h2> i <p>
                 content = re.sub(r'<(?!/?(?:h2|p)\b)[^>]+>', '', content)
                 html_out.append(content.strip())
-    # Zwróć ciąg z <br/> zamiast dosłownych \n
-    return ''.join(f"{block}<br/>" for block in html_out)
+    # Zwróć HTML jako jeden ciąg bez spacji między blokami
+    return ''.join(block + '<br/>' for block in html_out)
 
 if 'Opis oferty' in df.columns:
     df['Opis oferty'] = df['Opis oferty'].apply(clean_description)
@@ -97,8 +96,8 @@ for orig_col, target_col in target_mapping.items():
 if not img_urls.empty:
     result = pd.concat([result, img_urls], axis=1)
 
-# 8) Konwersja ID oferty na typ liczbowy (żeby Excel nie dodawał apostrofu)
-result['ID oferty'] = pd.to_numeric(result['ID oferty'], errors='coerce')
+# 8) Konwersja ID oferty na typ liczbowy
+esult['ID oferty'] = pd.to_numeric(result['ID oferty'], errors='coerce')
 
 # 9) Wypełnij brakujące i skonwertuj wszystkie pozostałe kolumny na tekst
 str_cols = result.columns.difference(['ID oferty'])
