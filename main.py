@@ -55,6 +55,8 @@ if wcol in df.columns:
     )
 
 # 4) Przetwarzanie "Opis oferty": JSON → HTML, usuń br i puste paragrafy
+import json, re
+
 def clean_description(json_str):
     try:
         data = json.loads(json_str)
@@ -65,7 +67,7 @@ def clean_description(json_str):
         for item in section.get('items', []):
             if item.get('type') == 'TEXT':
                 content = item.get('content', '')
-                # Zamiana nagłówków H1-H6 na H2
+                # Zamiana nagłówków H1–H6 na H2
                 content = re.sub(r'<h[1-6]>(.*?)</h[1-6]>',
                                  r'<h2>\1</h2>',
                                  content,
@@ -78,13 +80,16 @@ def clean_description(json_str):
                                  flags=re.DOTALL)
                 # Usuń wszystkie tagi inne niż <h2> i <p>
                 content = re.sub(r'<(?!\/?(?:h2|p)\b)[^>]+>', '', content)
-                # Dodaj do listy
                 html_parts.append(content.strip())
-    # Połącz fragmenty bez <br>
+    # Połącz fragmenty
     html = ''.join(html_parts)
-    # Usuń puste paragrafy (<p> </p>, <p> </p>)
+    # Usuń puste paragrafy
     html = re.sub(r'<p>\s*(?:&nbsp;| )?\s*</p>', '', html)
+    # === DODATKOWO: usuń wszystkie znaki nowej linii i zbicie spacji ===
+    html = html.replace('\n', ' ').replace('\r', ' ')
+    html = re.sub(r'\s{2,}', ' ', html).strip()
     return html
+
 
 if 'Opis oferty' in df.columns:
     df['Opis oferty'] = df['Opis oferty'].apply(clean_description)
