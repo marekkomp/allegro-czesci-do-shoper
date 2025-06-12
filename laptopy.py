@@ -94,29 +94,35 @@ def clean_description(json_str):
                 continue
             content = item.get('content', '').strip()
 
-            # Zamień H1–H6 na H2
+            # Zamień <h1>–<h6> na <h2>
             content = re.sub(r'<h[1-6]>(.*?)</h[1-6]>', r'<h2>\1</h2>', content, flags=re.DOTALL)
 
-            # Jeśli zawiera <ul> to zostaw jako listę, nie zamieniaj <li> na <p>
-            if '<ul>' in content:
-                # usuwamy style i dziwne tagi
-                content = re.sub(r'<(?!/?(ul|li|b|h2|p)\b)[^>]+>', '', content)
-                html_parts.append(content)
-            else:
-                # Zamień <br> i niepożądane tagi na spacje
-                content = re.sub(r'<br\s*/?>', ' ', content)
-                content = re.sub(r'<[^>]+>', '', content)  # usuń inne tagi
-                if content:
-                    html_parts.append(f"<p>{content.strip()}</p>")
+            # Podziel po enterach i przetwarzaj każdą linię osobno
+            lines = content.split('\n')
+            for line in lines:
+                line = line.strip()
+                if not line:
+                    continue
+
+                # Jeżeli zawiera listę – zostaw bez zmian
+                if '<ul>' in line:
+                    html_parts.append(line)
+                # Jeśli wygląda na nagłówek lub paragraf – zostaw jak jest
+                elif line.startswith('<h2>') or line.startswith('<p>'):
+                    html_parts.append(line)
+                else:
+                    # Oczyść ze zbędnych tagów
+                    line = re.sub(r'<[^>]+>', '', line)
+                    html_parts.append(f"<p>{line}</p>")
 
     html = ''.join(html_parts)
 
-    # usuń puste paragrafy
-    html = re.sub(r'<p>\s*(?:&nbsp;| )?\s*</p>', '', html)
-    # łącz tagi bez spacji
+    # Usuń puste znaczniki i zbędne odstępy
+    html = re.sub(r'<p>\s*(?:&nbsp;|\s)*</p>', '', html)
     html = re.sub(r'>\s+<', '><', html)
 
     return html
+
 
 
 
