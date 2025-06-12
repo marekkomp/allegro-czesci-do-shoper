@@ -54,7 +54,15 @@ if not uploaded:
 df = pd.read_csv(uploaded, header=3, sep=',')
 # 1.a) Ujednolicenie nagłówków: usuń leading/trailing spacje
 df.columns = df.columns.str.strip()
-
+# 🔽 DODAJ TO TUTAJ:
+if "Producent" in df.columns:
+    df["Producent"] = (
+        df["Producent"]
+        .astype(str)
+        .str.strip()
+        .str.extract(r'^(\w[\w-]*)')  # pierwsze słowo lub myślnikowy człon
+        .fillna("")
+    )
 # 1.b) Debug: podejrzyj wszystkie kolumny
 st.write("🔍 Kolumny w wczytanym df:", df.columns.tolist())
 
