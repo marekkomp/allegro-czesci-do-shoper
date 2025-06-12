@@ -20,7 +20,7 @@ target_mapping = {
     "Moc zasilacza [W]": "Moc|738|text",
     "Napięcie [V]": "Napięcie|734|text",
     "Opis oferty": "Opis oferty",
-    "Pojemność dysku [GB]": "Pojemność|735|text",
+    "Pojemność dysku [GB]": "Pojemność dysku",
     "Podkategoria": "Podkategoria",
     "Przeznaczenie": "Przeznaczenie|733|text",
     "Przekątna ekranu [\"]": "Przekątna ekranu [\"]",
