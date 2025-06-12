@@ -18,6 +18,7 @@ target_mapping = {
     "Informacje o gwarancjach (opcjonalne)": "Gwarancja|736|text",
     "Typ": "Typ|737|text",
     "Moc [W]": "Moc|738|text",
+    "Moc zasilacza [W]": "Moc|738|text",
     "Informacje dodatkowe": "Informacje dodatkowe|739|text",
     "Załączone wyposażenie": "W zestawie|740|text",
     # Pola dodatkowe bez zmiany nazwy
