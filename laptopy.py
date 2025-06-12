@@ -95,35 +95,37 @@ def clean_description(json_str):
 
             content = item.get('content', '').strip()
 
-            # Rozbij po \n na linie blokowe
-            lines = content.split('\n')
+            # Rozbij po tagach otwierających, np. <h2>, <p>, <ul>...
+            lines = re.split(r'(?=<h[1-6]>|<p>|<ul>)', content)
+
             for line in lines:
                 line = line.strip()
                 if not line:
                     continue
 
-                # Zamiana <h1>__________________</h1> lub fragmentów zawierających go
-                if re.search(r'<h[1-6]>_+</h[1-6]>', line):
-                    html_parts.append('<hr>')
+                # ❌ Pomiń separator — usuń całkowicie <h1>__________</h1>
+                line = re.sub(r'<h[1-6]>_+</h[1-6]>', '', line).strip()
+                if not line:
                     continue
 
-                # Zamiana H1–H6 (nie będące separatorami) na H2
+                # Zamień pozostałe nagłówki H1–H6 na H2
                 line = re.sub(r'<h[1-6]>(.*?)</h[1-6]>', r'<h2>\1</h2>', line, flags=re.DOTALL)
 
-                # Pozostaw gotowe <ul>, <li>, <h2>, <p>
+                # Zostaw gotowe <ul>, <li>, <h2>, <p>
                 if re.match(r'^\s*<(ul|li|h2|p)\b', line):
                     html_parts.append(line)
                 else:
-                    # Oczyść z tagów i wrzuć w <p>
-                    line = re.sub(r'<[^>]+>', '', line)
-                    html_parts.append(f'<p>{line}</p>')
+                    # Usuń inne tagi i opakuj w <p>
+                    text = re.sub(r'<[^>]+>', '', line).strip()
+                    if text:
+                        html_parts.append(f'<p>{text}</p>')
 
-    # Final cleanup
     html = ''.join(html_parts)
     html = re.sub(r'<p>\s*(?:&nbsp;|\s)*</p>', '', html)
     html = re.sub(r'>\s+<', '><', html)
 
     return html
+
 
 
 
