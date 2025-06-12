@@ -29,6 +29,19 @@ target_mapping = {
     "Marka": "Marka",
     "Producent": "Producent",
     "Kod producenta": "Kod producenta",
+"Rodzaj karty graficznej": "Rodzaj karty graficznej",
+    "System operacyjny": "System operacyjny",
+  "Taktowanie bazowe procesora [GHz]": "Taktowanie bazowe procesora [GHz]",
+  "Liczba rdzeni procesora": "Liczba rdzeni procesora",
+ "Typ pamięci RAM": "Typ pamięci RAM",
+     "Wielkość pamięci RAM": "Wielkość pamięci RAM",
+     "Typ pamięci RAM": "Typ pamięci RAM",
+     "Typ dysku twardego": "Typ dysku twardego",
+     "Pojemność dysku [GB]": "Pojemność dysku [GB]",
+"Przekątna ekranu ["]": "Przekątna ekranu ["]":",
+"Rozdzielczość (px)": "Rozdzielczość (px)",
+"Seria procesora": "Seria procesora",
+"Seria": "Seria",
 }
 
 st.title("CSV Column Mapper & Exporter")
