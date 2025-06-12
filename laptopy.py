@@ -77,36 +77,39 @@ def clean_description(json_str):
         data = json.loads(json_str)
     except (json.JSONDecodeError, TypeError):
         return ""
+
     html_parts = []
+
     for section in data.get('sections', []):
         for item in section.get('items', []):
-            if item.get('type') == 'TEXT':
-                content = item.get('content', '')
-                # 1) Zamiana H1–H6 na H2
-                content = re.sub(r'<h[1-6]>(.*?)</h[1-6]>',
-                                 r'<h2>\1</h2>',
-                                 content,
-                                 flags=re.DOTALL)
-                # 2) <ul> → usuń, <li> → <p>• …</p>
-                content = re.sub(r'</?ul>', '', content)
-                content = re.sub(r'<li>(.*?)</li>',
-                                 r'<p>• \1</p>',
-                                 content,
-                                 flags=re.DOTALL)
-                # 3) usuń wszystkie tagi inne niż <h2> i <p>
-                content = re.sub(r'<(?!\/?(?:h2|p)\b)[^>]+>', '', content)
-                html_parts.append(content.strip())
-    # 4) połącz w jeden ciąg
+            if item.get('type') != 'TEXT':
+                continue
+            content = item.get('content', '').strip()
+
+            # Zamień H1–H6 na H2
+            content = re.sub(r'<h[1-6]>(.*?)</h[1-6]>', r'<h2>\1</h2>', content, flags=re.DOTALL)
+
+            # Jeśli zawiera <ul> to zostaw jako listę, nie zamieniaj <li> na <p>
+            if '<ul>' in content:
+                # usuwamy style i dziwne tagi
+                content = re.sub(r'<(?!/?(ul|li|b|h2|p)\b)[^>]+>', '', content)
+                html_parts.append(content)
+            else:
+                # Zamień <br> i niepożądane tagi na spacje
+                content = re.sub(r'<br\s*/?>', ' ', content)
+                content = re.sub(r'<[^>]+>', '', content)  # usuń inne tagi
+                if content:
+                    html_parts.append(f"<p>{content.strip()}</p>")
+
     html = ''.join(html_parts)
-    # 5) usuń puste paragrafy
+
+    # usuń puste paragrafy
     html = re.sub(r'<p>\s*(?:&nbsp;| )?\s*</p>', '', html)
-    # 6) usuń entery i powroty karetki (zamień na spację, żeby nie skleić wyrazów)
-    html = html.replace('\n', ' ').replace('\r', ' ')
-    # 7) tylko teraz usuwamy spacje między tagami, np. '</p>   <h2>' → '</p><h2>'
+    # łącz tagi bez spacji
     html = re.sub(r'>\s+<', '><', html)
-    # (opcjonalnie) jeśli chcesz skompresować wielokrotne spacje w treści:
-    #    html = re.sub(r' {2,}', ' ', html).strip()
+
     return html
+
 
 
 
