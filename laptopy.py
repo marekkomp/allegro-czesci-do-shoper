@@ -95,34 +95,36 @@ def clean_description(json_str):
 
             content = item.get('content', '').strip()
 
-            # Automatyczne wykrycie separatora w formie <h1>_______</h1>
-            if re.fullmatch(r'<h1>_+</h1>', content):
-                html_parts.append('<hr>')
-                continue
-
-            # Zamiana H1-H6 na H2 (ale po sprawdzeniu separatora)
-            content = re.sub(r'<h[1-6]>(.*?)</h[1-6]>', r'<h2>\1</h2>', content, flags=re.DOTALL)
-
-            # Rozbijamy po enterach
+            # Rozbij po \n na linie blokowe
             lines = content.split('\n')
             for line in lines:
                 line = line.strip()
                 if not line:
                     continue
 
-                if '<ul>' in line:
-                    html_parts.append(line)
-                elif line.startswith('<h2>') or line.startswith('<p>'):
+                # Zamiana <h1>__________________</h1> lub fragmentów zawierających go
+                if re.search(r'<h[1-6]>_+</h[1-6]>', line):
+                    html_parts.append('<hr>')
+                    continue
+
+                # Zamiana H1–H6 (nie będące separatorami) na H2
+                line = re.sub(r'<h[1-6]>(.*?)</h[1-6]>', r'<h2>\1</h2>', line, flags=re.DOTALL)
+
+                # Pozostaw gotowe <ul>, <li>, <h2>, <p>
+                if re.match(r'^\s*<(ul|li|h2|p)\b', line):
                     html_parts.append(line)
                 else:
+                    # Oczyść z tagów i wrzuć w <p>
                     line = re.sub(r'<[^>]+>', '', line)
                     html_parts.append(f'<p>{line}</p>')
 
+    # Final cleanup
     html = ''.join(html_parts)
     html = re.sub(r'<p>\s*(?:&nbsp;|\s)*</p>', '', html)
     html = re.sub(r'>\s+<', '><', html)
 
     return html
+
 
 
 
