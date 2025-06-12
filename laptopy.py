@@ -52,6 +52,15 @@ if not uploaded:
 
 # 1) Wczytanie CSV (pomijamy pierwsze 3 wiersze)
 df = pd.read_csv(uploaded, header=3, sep=',')
+# 1.a) Ujednolicenie nagłówków: usuń leading/trailing spacje
+df.columns = df.columns.str.strip()
+
+# 1.b) Debug: podejrzyj wszystkie kolumny
+st.write("🔍 Kolumny w wczytanym df:", df.columns.tolist())
+
+# 1.c) Debug: co ma 'dysku' w nazwie?
+st.write("🔍 Kolumny zawierające 'dysku':", 
+         [col for col in df.columns if 'dysku' in col.lower()])
 
 # 2) Podgląd surowych danych
 st.subheader("Podgląd pierwotnych danych (pierwsze 100 wierszy)")
@@ -126,8 +135,16 @@ if 'Zdjęcia' in df.columns:
 
 # 6) Zbuduj wynikowy DataFrame z mapowaniem
 result = pd.DataFrame()
+missing = []
 for orig_col, target_col in target_mapping.items():
-    result[target_col] = df.get(orig_col, "")
+    if orig_col in df.columns:
+        result[target_col] = df[orig_col]
+    else:
+        missing.append(orig_col)
+        # i mimo braku, twórz pustą kolumnę, żeby struktura była spójna
+        result[target_col] = ""
+# pokaż, co nie zostało znalezione
+st.write("⚠️ Nie znaleziono w pliku kolumn (mapowane jako puste):", missing)
 
 # 7) Dodaj kolumny z obrazkami (jeśli są)
 if not img_urls.empty:
