@@ -22,6 +22,7 @@ target_mapping = {
     "Opis oferty": "Opis oferty",
     "Pojemność dysku [GB]": "Pojemność dysku",
     "Podkategoria": "Podkategoria",
+    "Stawki VAT": "VAT",
     "Przeznaczenie": "Przeznaczenie|733|text",
     "Przekątna ekranu [\"]": "Przekątna ekranu [\"]",
     "Producent": "Producent",
