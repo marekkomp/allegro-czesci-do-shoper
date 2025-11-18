@@ -40,6 +40,8 @@ target_mapping = {
     "Wielkość pamięci RAM": "Wielkość pamięci RAM",
     "Zdjęcia": "Zdjęcia",
     "Załączone wyposażenie": "W zestawie|740|text",
+    "Rozdzielczość natywna [px]": "Rozdzielczość",
+    "Przekątna ekranu (cale) [\"]": "Wielkość ekranu",
     "Rozdzielczość (px)": "Rozdzielczość (px)",
 }
 
